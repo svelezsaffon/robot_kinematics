@@ -89,7 +89,7 @@ class DH_Table():
         else:
             return None
 
-    """
+    """ 
     This method calculates the i-1A 1  Matrxi
     """
     def A_i_matrix(self,link,theta=0,alpha=0,a=0,d=0):
