@@ -2,6 +2,8 @@ __author__ = 'santiago'
 
 import xml.etree.ElementTree as ET
 import math
+import openravepy
+
 
 
 
@@ -318,20 +320,29 @@ class math_matrix(object):
 
 
 
+
+class Puma560(object):
+
+    def __init__(self,param_file):
+        dh_table=DH_Table()
+        dh_table.load(param_file)
+
+
+    def fordward_kinematics_checkings(self):
+        print '-----PERFORMING FORDWARD KINEMATICS CHECKING-----'
+
+
+
+
+
+
+
+
+
 def main():
-    dh_table=DH_Table()
-    dh_table.load("dh_table.xml")
 
-    A= dh_table.A_i_matrix(1,0,None,1,0)
-    B= dh_table.A_i_matrix(2,0,None,2,None)
-
-    res=math_matrix.multiply(B,math_matrix.multiply(A,B))
-
-    for i in range(0,4):
-        print B[i]
-
-
-
+    robot=Puma560('dh_table.xml')
+    robot.fordward_kinematics_checkings()
 
 if __name__ == '__main__':
     main()
