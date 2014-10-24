@@ -89,7 +89,7 @@ class DH_Table():
         else:
             return None
 
-    """ 
+    """
     This method calculates the i-1A 1  Matrxi
     """
     def A_i_matrix(self,link,theta=0,alpha=0,a=0,d=0):
@@ -296,6 +296,9 @@ class DH_Table():
         else:
             return None
 
+"""This Class is created only to do math with matrices, all fo its methods are static so we dont need
+    to instantiate an object
+"""
 
 class math_matrix(object):
 
