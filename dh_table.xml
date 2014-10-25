@@ -4,7 +4,7 @@
     <link>
         <id> 1 </id>
         <thetha>var=0</thetha>
-        <alpha>-90</alpha>
+        <alpha>0</alpha>
         <a>0</a>
         <d>0</d>
     </link>
@@ -12,20 +12,20 @@
         <id> 2 </id>
         <thetha>var=0</thetha>
         <alpha>0</alpha>
-        <a>0</a>
-        <d>0</d>
+        <a>0.45</a>
+        <d>0.2</d>
     </link>
      <link>
         <id> 3 </id>
         <thetha>var=0</thetha>
-        <alpha>90</alpha>
-        <a>-20</a>
-        <d>0</d>
+        <alpha>0</alpha>
+        <a>0.245</a>
+        <d>1.371</d>
     </link>
     <link>
         <id> 4 </id>
         <thetha>var=0</thetha>
-        <alpha>-90</alpha>
+        <alpha>0</alpha>
         <a>0</a>
         <d>433</d>
     </link>

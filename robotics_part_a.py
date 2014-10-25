@@ -343,20 +343,23 @@ class Puma560(object):
 
         var =1
         while True :
-            time.sleep(0.5)
-            var=var+1
 
-            """
+            var=var+0.1
+
+
+
             i=1
-            for joint in robot.GetJoints():
-                if i < 2:
+            first =True
+            for link in robot.GetLinks():
+                if i==1:
                     mat=self.dh_table.A_i_matrix(i,var,None,0,1)
-                    joint.SetTransform(mat)
+                    print link.GetTransform()
+                    #link.SetTransform(mat)
 
                 i=i+1
-            """
 
 
+            time.sleep(25)
 
 
 
