@@ -13,7 +13,7 @@
         <id> 2 </id>
         <thetha>var=0</thetha>
         <alpha>0</alpha>
-        <a>0.318</a>
+        <a>0.4318</a>
         <d>0.14909</d>
     </link>
 
@@ -21,7 +21,7 @@
         <id> 3 </id>
         <thetha>var=0</thetha>
         <alpha>90</alpha>
-        <a>-2.032</a>
+        <a>-0.02032</a>
         <d>0</d>
     </link>
 
@@ -30,7 +30,7 @@
         <thetha>var=0</thetha>
         <alpha>-90</alpha>
         <a>0</a>
-        <d>4.3307</d>
+        <d>0.43307</d>
     </link>
 
     <link>
@@ -46,6 +46,6 @@
         <thetha>var=0</thetha>
         <alpha>0</alpha>
         <a>0</a>
-        <d>0.5625</d>
+        <d>0.05625</d>
     </link>
 </dh_table>
