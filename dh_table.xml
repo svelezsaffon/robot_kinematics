@@ -4,31 +4,35 @@
     <link>
         <id> 1 </id>
         <thetha>var=0</thetha>
-        <alpha>0</alpha>
+        <alpha>-90</alpha>
         <a>0</a>
         <d>0</d>
     </link>
+
     <link>
         <id> 2 </id>
         <thetha>var=0</thetha>
         <alpha>0</alpha>
-        <a>0.45</a>
-        <d>0.2</d>
+        <a>0.318</a>
+        <d>0.14909</d>
     </link>
+
      <link>
         <id> 3 </id>
         <thetha>var=0</thetha>
-        <alpha>0</alpha>
-        <a>0.245</a>
-        <d>1.371</d>
+        <alpha>90</alpha>
+        <a>-2.032</a>
+        <d>0</d>
     </link>
+
     <link>
         <id> 4 </id>
         <thetha>var=0</thetha>
-        <alpha>0</alpha>
+        <alpha>-90</alpha>
         <a>0</a>
-        <d>433</d>
+        <d>4.3307</d>
     </link>
+
     <link>
         <id> 5 </id>
         <thetha>var=0</thetha>
@@ -36,11 +40,12 @@
         <a>0</a>
         <d>0</d>
     </link>
+
     <link>
         <id> 6 </id>
         <thetha>var=0</thetha>
         <alpha>0</alpha>
         <a>0</a>
-        <d>56.25</d>
+        <d>0.5625</d>
     </link>
 </dh_table>
