@@ -344,10 +344,9 @@ class Puma560(object):
         self.dh_table = DH_Table()
         self.dh_table.load(param_file)
         self.env=Environment()
-        #self.env.SetViewer('qtcoin') # attach viewer (optional)
+        self.env.SetViewer('qtcoin') # attach viewer (optional)
         self.env.Load('pumaarm.dae') # load a simple scene
         self.robot = self.env.GetRobots()[0]
-
 
         self.ARM=-1
         self.ARM2=0
@@ -365,7 +364,7 @@ class Puma560(object):
                 angle=sine(value)
 
                 self.robot.SetDOFValues([angle],[link])
-                print self.robot.GetLinks()[5].GetTransform()
+                print self.robot.GetLinks()[6].GetTransform()
                 print "DOF"
                 print self.robot.GetDOFValues()
 
@@ -445,12 +444,10 @@ class Puma560(object):
 
         sqrt=e-numpy.power(d,2)
 
-        if sqrt<0:
-            sqrt*=-1
-
         if sqrt >=0 :
             return numpy.arctan2(2*a2*d4-self.ARM*self.ELBOW*numpy.sqrt(sqrt),d+2*a2*a3)
 
+        return None
 
     def theta_1_half_angle(self,end_pos):
         px=self.pos_in_matrix(end_pos,'p','x')
@@ -507,12 +504,12 @@ class Puma560(object):
         ny=self.pos_in_matrix(end_pos,'n','y')
         nz=self.pos_in_matrix(end_pos,'n','z')
 
-        s1=sine(angles[0])
-        c4=cosine(angles[3])
-        c1=cosine(angles[0])
-        c23=cosine(angles[1]+angles[2])
-        s4=sine(angles[3])
-        s23=sine(angles[1]+angles[2])
+        s1=sine_d(angles[0])
+        c4=cosine_d(angles[3])
+        c1=cosine_d(angles[0])
+        c23=cosine_d(angles[1]+angles[2])
+        s4=sine_d(angles[3])
+        s23=sine_d(angles[1]+angles[2])
 
         return numpy.arctan2((-s1*c4-c1*c23*s4)*nx +(c1*c4-s1*c23*s4)*ny+s23*s4*nz ,(-s1*c4-c1*c23*s4)*sx + (c1*c4-s1*c23*s4)*sy + s23*s4*sz)
 
@@ -522,14 +519,14 @@ class Puma560(object):
         ay=self.pos_in_matrix(end_pos,'a','y')
         az=self.pos_in_matrix(end_pos,'a','z')
 
-        c1=cosine(angles[0])
-        s1=sine(angles[0])
+        c1=cosine_d(angles[0])
+        s1=sine_d(angles[0])
 
-        c4=cosine(angles[3])
-        s4=sine(angles[3])
+        c4=cosine_d(angles[3])
+        s4=sine_d(angles[3])
 
-        c23=cosine(angles[1]+angles[2])
-        s23=sine(angles[1]+angles[2])
+        c23=cosine_d(angles[1]+angles[2])
+        s23=sine_d(angles[1]+angles[2])
 
 
         return numpy.arctan2((c1*c23*c4-s1*s4)*ax +(s1*c23*c4 + c1*s4)*ay-c4*s23*az,c1*s23*ax + s1*s23*ay + c23*az)
@@ -543,9 +540,9 @@ class Puma560(object):
         ay=self.pos_in_matrix(end_pos,'a','y')
         az=self.pos_in_matrix(end_pos,'a','z')
 
-        a=self.WRIST*(cosine(angles[0])*ay - sine(angles[0])*ax)
-        c23=cosine(angles[1]+angles[2])
-        b=self.WRIST*(cosine(angles[0])*c23*ax  + sine(angles[0])*c23*ay -sine(angles[1]+angles[2])*az)
+        a=self.WRIST*(cosine_d(angles[0])*ay - sine_d(angles[0])*ax)
+        c23=cosine_d(angles[1]+angles[2])
+        b=self.WRIST*(cosine_d(angles[0])*c23*ax  + sine_d(angles[0])*c23*ay -sine_d(angles[1]+angles[2])*az)
 
 
         return numpy.arctan2(a,b)
@@ -570,8 +567,6 @@ class Puma560(object):
         else:
             return None
 
-
-
     def sign(self,value):
         if value >= 0:
             return 1
@@ -584,26 +579,27 @@ class Puma560(object):
         d4=self.dh_table.get_paramf(4,'d')
         a2=self.dh_table.get_paramf(2,'a')
         a3=self.dh_table.get_paramf(3,'a')
+        c3=cosine_d(angles[2])
+        s3=sine_d(angles[2])
+        c1=cosine_d(angles[0])
+        s1=sine_d(angles[0])
 
-        #f=cosine(angles[0])*px+sine(angles[0])*py
-        f=(d4*cosine(angles[2])-a3*sine(angles[2]))*sine(angles[1])+(d4*sine(angles[3])+a3*cosine(angles[2])+a2)
-        h=numpy.power(d4,2)+numpy.power(a2,2)+numpy.power(a3,2)+2*a2*d4*sine(angles[2])+2*a2*a3*cosine(angles[2])
+        f=c1*px+s1*py
 
-        self.ARM2=self.sign( cosine(angles[1])*(d4*cosine(angles[2])-a3*sine(angles[2]))-sine(angles[1])*(d4*sine(angles[2])+a3*cosine(angles[2])+a2))
+        h=numpy.power(d4,2)+numpy.power(a2,2)+numpy.power(a3,2)+2*a2*d4*sine_d(angles[2])+2*a2*a3*cosine_d(angles[2])
+
+        self.ARM2=self.sign(cosine_d(angles[3])*(d4*cosine_d(angles[2])-a3*sine_d(angles[2]))-sine_d(angles[3])*(d4*sine_d(angles[2])+a3*cosine_d(angles[2])+a2))
 
         sqrt=h-numpy.power(f,2)
-
-
 
         theta=None
 
         if sqrt >=0 :
-            theta=numpy.arctan2(f,self.ARM2*numpy.sqrt(sqrt))-numpy.arctan2(d4*sine(angles[2])+a3*cosine(angles[2])+a2,d4*cosine(angles[2])-a3*sine(angles[2]))
+            theta=numpy.arctan2(f,self.ARM2*numpy.sqrt(sqrt))-numpy.arctan2(d4*sine_d(angles[2])+a3*cosine_d(angles[2])+a2,d4*cosine_d(angles[2])-a3*sine_d(angles[2]))
+
 
 
         return theta
-
-
 
 
     def calculate_thetha_3(self,end_pos,angles):
@@ -614,21 +610,14 @@ class Puma560(object):
         px=self.pos_in_matrix(end_pos,'p','x')
         py=self.pos_in_matrix(end_pos,'p','y')
 
-
-
         g214=cosine_d(angles[0])*px+sine_d(angles[0])*py
         g222=-self.pos_in_matrix(end_pos,'p','z')
 
-
-        #d=2*a2*d4*sine_d(angles[0])+2*a2*a3*cosine_d(angles[0])
         d=numpy.power(g214,2)+numpy.power(g222,2)-numpy.power(d4,2)-numpy.power(a3,2)-numpy.power(a2,2)
 
         e=(4*numpy.power(a2,2)*numpy.power(a3,2))+(4*numpy.power(a2,2)*numpy.power(d4,2))
 
         sqrt=numpy.abs(e-numpy.power(d,2))
-
-
-
 
         thetha=None
 
@@ -690,44 +679,44 @@ def main():
         if deci is 3:
 
             pos=[
-                [0.558560003,-0.829464118,0,0.105344877],
-                [0.829464118,0.558560003,0,0.425164341],
-                [0,0.0,1,1.80410000],
+                [-0.98149001,-0.0357355,0.18814976,0.82368182],
+                [-0.04368748,0.99831133,-0.03828686,0.17894921],
+                [-0.18646384,-0.04579796,-0.9813938,1.55276474],
                 [0,0,0,1]
             ]
 
             """
-DOF
-[  9.78147601e-01  -7.10542736e-15   5.32907052e-15   0.00000000e+00 0.00000000e+00   0.00000000e+00]
+            [[-0.98149001 -0.0357355   0.18814976  0.82368182]
+            [-0.04368748  0.99831133 -0.03828686  0.17894921]
+            [-0.18646384 -0.04579796 -0.9813938   1.55276474]
+            [ 0.          0.          0.          1.        ]]
+            DOF
+            [ 0.0348995  -0.02112349  1.22921694 -0.04553583  1.74532925 -0.01733645]
+
             """
             print robot.inverse_kinematics(pos)
 
-            time.sleep(1)
-            pos=[
-                [0.93647051,-0.35074633,0,0.33271059],
-                [0.35074633,0.93647051,0,0.28489634],
-                [0,0.0,1,1.8041],
-                [0,0,0,1]
-            ]
-            robot.inverse_kinematics(pos)
 
-            time.sleep(1)
-            pos=[
-                [0.617488860,0.03488097,0.785805573,0.398891517],
-                [-0.0210763584,0.999391074,-0.0278076892,0.143160538],
-                [-0.786297205,0,0.617848148,1.81066334],
-                [0,0,0,1]
-            ]
-            robot.inverse_kinematics(pos)
+            """
 
-            time.sleep(1)
+            [
+            [  6.74333353e-01   1.74515205e-02   7.38220816e-01   7.40322435e-01]
+            [ -1.17699348e-02   9.99847711e-01  -1.28850380e-02   1.37201142e-01]
+            [ -7.38333257e-01   4.25007252e-17   6.74436062e-01   1.68562199e+00]
+            [  0.00000000e+00   0.00000000e+00   0.00000000e+00   1.00000000e+00]]
+            DOF
+            [-0.01745241 -0.01745241  0.8480481   0.          0.          0.        ]
+            """
+
             pos=[
-                [-0.26518816,0.03831466,0.96343511,0.77027201],
-                [-0.01705003,0.99886756,-0.04441718,0.1366784],
-                [-0.96404592,-0.02820551,-0.26423458,1.65252102],
+                [0.674333353,   0.0174515205,   0.738220816,    0.740322435],
+                [-0.0117699348, 0.999847711,    -0.0128850380,  0.137201142],
+                [-0.738333257,  0.0,            0.674436062,    1.68562199],
                 [0,0,0,1]
             ]
-            robot.inverse_kinematics(pos)
+
+            print robot.inverse_kinematics(pos)
+
 
         deci=print_menu()
 
