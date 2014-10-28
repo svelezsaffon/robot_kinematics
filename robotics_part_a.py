@@ -412,12 +412,22 @@ class Puma560(object):
 
             angles[2]=self.theta_3_half_angle(end_pos,angles)
 
+            if angles[2] is not None:
+
+                angles[1]=self.theta_2_half_angle(end_pos,angles)
+
+
         else:
             print "[TANGENT HALF ANGLE]Robot could not reach  THETA_1"
 
 
 
         return angles
+
+
+    def theta_2_half_angle(self,end_pos,angles):
+        return 10
+
 
     def theta_3_half_angle(self,end_pos,angles):
         a3=self.dh_table.get_paramf(3,'a')
