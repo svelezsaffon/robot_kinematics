@@ -15,9 +15,20 @@ from openravepy import *
 def cosine(angle):
     return numpy.cos(numpy.radians(angle))
 
+def sine_d(angle):
+    return numpy.sin(angle)
+
+def cosine_d(angle):
+    return numpy.cos(angle)
 
 def sine(angle):
     return numpy.sin(numpy.radians(angle))
+
+def arctan2(a,b):
+    return numpy.radians(numpy.arctan2(a,b))
+
+def arctan2x(a,b):
+    return numpy.arctan2(numpy.radians(a),numpy.radians(b))
 
 
 """
@@ -333,7 +344,7 @@ class Puma560(object):
         self.dh_table = DH_Table()
         self.dh_table.load(param_file)
         self.env=Environment()
-        self.env.SetViewer('qtcoin') # attach viewer (optional)
+        #self.env.SetViewer('qtcoin') # attach viewer (optional)
         self.env.Load('pumaarm.dae') # load a simple scene
         self.robot = self.env.GetRobots()[0]
 
@@ -355,6 +366,8 @@ class Puma560(object):
 
                 self.robot.SetDOFValues([angle],[link])
                 print self.robot.GetLinks()[5].GetTransform()
+                print "DOF"
+                print self.robot.GetDOFValues()
 
                 time.sleep(0.05)
 
@@ -374,7 +387,6 @@ class Puma560(object):
         if col is 'p' or col is 'P':
             col =3
 
-
         if row is 'x' or row is 'X':
             row = 0
 
@@ -389,8 +401,58 @@ class Puma560(object):
         return float(matrix[int(row)][int(col)])
 
 
+    def inverse_kinematics_tangent_half(self,end_pos):
+        print "----PERFORMING INVERSE KINEMATICS - TANGENT HAL ANGLE-----"
+        angles=[0,0,0,0,0,0]
+
+        #we first calculate thetha 1, ans store it in an array
+        angles[0]=self.theta_1_half_angle(end_pos)
+
+        if angles[0] is not None:
+
+            angles[2]=self.theta_3_half_angle(end_pos,angles)
+
+        else:
+            print "[TANGENT HALF ANGLE]Robot could not reach  THETA_1"
 
 
+
+        return angles
+
+    def theta_3_half_angle(self,end_pos,angles):
+        a3=self.dh_table.get_paramf(3,'a')
+        d4=self.dh_table.get_paramf(4,'d')
+        a2=self.dh_table.get_paramf(2,'a')
+        px=self.pos_in_matrix(end_pos,'p','x')
+        py=self.pos_in_matrix(end_pos,'p','y')
+
+
+        g214=cosine(angles[0])*px+sine(angles[0])*py
+        g222=-self.pos_in_matrix(end_pos,'p','z')
+
+        d=numpy.power(g214,2)+numpy.power(g222,2)-numpy.power(d4,2)-numpy.power(a3,2)-numpy.power(a2,2)
+        e=(4*numpy.power(a2,2)*numpy.power(a3,2))+(4*numpy.power(a2,2)*numpy.power(d4,2))
+
+        sqrt=e-numpy.power(d,2)
+
+        if sqrt<0:
+            sqrt*=-1
+
+        if sqrt >=0 :
+            return numpy.arctan2(2*a2*d4-self.ARM*self.ELBOW*numpy.sqrt(sqrt),d+2*a2*a3)
+
+
+    def theta_1_half_angle(self,end_pos):
+        px=self.pos_in_matrix(end_pos,'p','x')
+        py=self.pos_in_matrix(end_pos,'p','y')
+        d2=self.dh_table.get_paramf(2,'d')
+
+        sqrt=numpy.power(px,2)+numpy.power(py,2)-numpy.power(d2,2)
+
+        if sqrt >= 0:
+            return 2*numpy.arctan2(-px-self.ARM*numpy.sqrt(sqrt),d2+py)
+        else:
+            return None
 
     def inverse_kinematics(self,end_pos):
         print "------PERFORMING INVERSE KINEMATICS---------"
@@ -424,7 +486,7 @@ class Puma560(object):
         else:
             print "Robot could not reach THETA_1 angle"
 
-
+        return angles
 
     def calculate_theta_6(self,end_pos,angles):
         sx=self.pos_in_matrix(end_pos,'s','x')
@@ -493,10 +555,8 @@ class Puma560(object):
         #theta1=atan2(py,px)-atan2(d2,+-sqrt(r^2-d_2^2)
         sqrt=numpy.power(r,2)-numpy.power(d2,2)
 
-
         if sqrt >= 0:
-            theta=numpy.arctan2(py,px)-numpy.arctan2(d2,-1*self.ARM*numpy.sqrt(sqrt))
-            return theta
+            return numpy.arctan2(py,px)-numpy.arctan2(d2,-self.ARM*numpy.sqrt(sqrt))
         else:
             return None
 
@@ -537,6 +597,7 @@ class Puma560(object):
 
 
     def calculate_thetha_3(self,end_pos,angles):
+
         a3=self.dh_table.get_paramf(3,'a')
         d4=self.dh_table.get_paramf(4,'d')
         a2=self.dh_table.get_paramf(2,'a')
@@ -544,20 +605,25 @@ class Puma560(object):
         py=self.pos_in_matrix(end_pos,'p','y')
 
 
-        g214=cosine(angles[0])*px+sine(angles[0])*py
-        g222=self.pos_in_matrix(end_pos,'p','z')
 
-        #d=numpy.power(g214,2)+numpy.power(g222,2)-numpy.power(d4,2)-numpy.power(a3,2)-numpy.power(a2,2)
-        d=2*a2*d4*sine(angles[2])+2*a2*a3*cosine(angles[2])
+        g214=cosine_d(angles[0])*px+sine_d(angles[0])*py
+        g222=-self.pos_in_matrix(end_pos,'p','z')
+
+
+        #d=2*a2*d4*sine_d(angles[0])+2*a2*a3*cosine_d(angles[0])
+        d=numpy.power(g214,2)+numpy.power(g222,2)-numpy.power(d4,2)-numpy.power(a3,2)-numpy.power(a2,2)
+
         e=(4*numpy.power(a2,2)*numpy.power(a3,2))+(4*numpy.power(a2,2)*numpy.power(d4,2))
 
-        sqrt=e-numpy.power(d,2)
+        sqrt=numpy.abs(e-numpy.power(d,2))
+
 
 
 
         thetha=None
 
         if sqrt >= 0:
+
             thetha=numpy.arctan2(d,self.ARM*self.ELBOW*numpy.sqrt(sqrt))-numpy.arctan2(a3,d4)
 
         return thetha
@@ -582,15 +648,16 @@ def print_menu():
 
         print "--------MENU FOR ROBOTICS PROGRAM----------"
         print "|Enter the number for the action you want |"
-        print "|1)Display all trans. mationmatrices      |"
+        print "|1)Display all trans. matrices            |"
         print "|2)Forward kinematic movement             |"
-        print "|3)Inverse Kinematics                     |"
-        print "|4)Exit                                   |"
-        print "|_________________________________________|"
+        print "|3)Inverse Kinematics-Circle Equation     |"
+        print "|4)Inverse Kinematics-Tangent Half Angle  |"
+        print "|6)Exit                                   |"
+        print "|___________SANTIAGO_VELEZ_SAFFON_________|"
 
         deci=int(raw_input("Option="))
 
-        if deci is 1 or deci is 2 or deci is 3 or deci is 4:
+        if deci in range(1,7):
             out=True
 
     return deci
@@ -602,10 +669,10 @@ def main():
     deci=print_menu()
 
 
-    if deci is not 4:
+    if deci is not 6:
         robot = Puma560('dh_table.xml')
 
-    while deci is not 4:
+    while deci is not 6:
 
         if deci is 2:
             robot.fordward_kinematics_checkings()
@@ -613,12 +680,17 @@ def main():
         if deci is 3:
 
             pos=[
-                [0.469654623,-0.521985377,-0.712008287,0.239007383],
-                [0.287416111,0.852954434,0.435730093,0.249800674],
-                [-0.834755362,0.0,0.550621000,1.52769488],
+                [0.558560003,-0.829464118,0,0.105344877],
+                [0.829464118,0.558560003,0,0.425164341],
+                [0,0.0,1,1.80410000],
                 [0,0,0,1]
             ]
-            robot.inverse_kinematics(pos)
+
+            """
+DOF
+[  9.78147601e-01  -7.10542736e-15   5.32907052e-15   0.00000000e+00 0.00000000e+00   0.00000000e+00]
+            """
+            print robot.inverse_kinematics(pos)
 
             time.sleep(1)
             pos=[
