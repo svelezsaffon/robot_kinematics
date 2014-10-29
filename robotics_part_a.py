@@ -24,13 +24,6 @@ def cosine_d(angle):
 def sine(angle):
     return numpy.sin(numpy.radians(angle))
 
-def arctan2(a,b):
-    return numpy.radians(numpy.arctan2(a,b))
-
-def arctan2x(a,b):
-    return numpy.arctan2(numpy.radians(a),numpy.radians(b))
-
-
 """
 The purpose if this class is to read the file that contains the DH table,
 I am doing an xml parser to give the user a flexible input. The xml file must contain the tags
@@ -344,7 +337,7 @@ class Puma560(object):
         self.dh_table = DH_Table()
         self.dh_table.load(param_file)
         self.env=Environment()
-        self.env.SetViewer('qtcoin') # attach viewer (optional)
+        #self.env.SetViewer('qtcoin') # attach viewer (optional)
         self.env.Load('pumaarm.dae') # load a simple scene
         self.robot = self.env.GetRobots()[0]
 
@@ -435,19 +428,23 @@ class Puma560(object):
         px=self.pos_in_matrix(end_pos,'p','x')
         py=self.pos_in_matrix(end_pos,'p','y')
 
-
-        g214=cosine(angles[0])*px+sine(angles[0])*py
+        g214=cosine_d(angles[0])*px+sine_d(angles[0])*py
         g222=-self.pos_in_matrix(end_pos,'p','z')
 
         d=numpy.power(g214,2)+numpy.power(g222,2)-numpy.power(d4,2)-numpy.power(a3,2)-numpy.power(a2,2)
+
         e=(4*numpy.power(a2,2)*numpy.power(a3,2))+(4*numpy.power(a2,2)*numpy.power(d4,2))
 
-        sqrt=e-numpy.power(d,2)
+        sqrt=numpy.abs(e-numpy.power(d,2))
 
-        if sqrt >=0 :
-            return numpy.arctan2(2*a2*d4-self.ARM*self.ELBOW*numpy.sqrt(sqrt),d+2*a2*a3)
+        thetha=None
 
-        return None
+        if sqrt >= 0:
+
+            thetha=2*numpy.arctan2(2*a2*d4-self.ARM*self.ELBOW*numpy.sqrt(sqrt),d+2*a2*a3)
+
+        return thetha
+
 
     def theta_1_half_angle(self,end_pos):
         px=self.pos_in_matrix(end_pos,'p','x')
@@ -579,16 +576,19 @@ class Puma560(object):
         d4=self.dh_table.get_paramf(4,'d')
         a2=self.dh_table.get_paramf(2,'a')
         a3=self.dh_table.get_paramf(3,'a')
-        c3=cosine_d(angles[2])
-        s3=sine_d(angles[2])
+
+
         c1=cosine_d(angles[0])
         s1=sine_d(angles[0])
+
+        theta2dh=self.dh_table.get_paramf(2,'thetha')
+        theta3dh=self.dh_table.get_paramf(3,'thetha')
 
         f=c1*px+s1*py
 
         h=numpy.power(d4,2)+numpy.power(a2,2)+numpy.power(a3,2)+2*a2*d4*sine_d(angles[2])+2*a2*a3*cosine_d(angles[2])
 
-        self.ARM2=self.sign(cosine_d(angles[3])*(d4*cosine_d(angles[2])-a3*sine_d(angles[2]))-sine_d(angles[3])*(d4*sine_d(angles[2])+a3*cosine_d(angles[2])+a2))
+        self.ARM2=self.sign(cosine(theta2dh)*(d4*cosine(theta3dh)-a3*sine(theta3dh))-sine(theta2dh)*(d4*sine(theta3dh)+a3*cosine(theta3dh)+a2))
 
         sqrt=h-numpy.power(f,2)
 
@@ -610,6 +610,8 @@ class Puma560(object):
         px=self.pos_in_matrix(end_pos,'p','x')
         py=self.pos_in_matrix(end_pos,'p','y')
 
+
+
         g214=cosine_d(angles[0])*px+sine_d(angles[0])*py
         g222=-self.pos_in_matrix(end_pos,'p','z')
 
@@ -619,6 +621,8 @@ class Puma560(object):
 
         sqrt=numpy.abs(e-numpy.power(d,2))
 
+
+        print sqrt
         thetha=None
 
         if sqrt >= 0:
@@ -636,6 +640,60 @@ class Puma560(object):
             self.robot.SetDOFValues(angles,link)
 
 
+    def geometric_approach(self,end_pos):
+        angles=[0,0,0,0,0,0]
+
+        angles[0]=self.thetha1_geometric(end_pos)
+        angles[1]=self.thetha2_geometric(end_pos)
+
+        return angles
+
+    def thetha1_geometric(self,end_pos):
+        px=self.pos_in_matrix(end_pos,'p','x')
+        py=self.pos_in_matrix(end_pos,'p','y')
+        d2=self.dh_table.get_paramf(2,'d')
+
+        sqrt=numpy.power(px,2)+numpy.power(py,2)-numpy.power(d2,2)
+
+
+
+        return numpy.arctan2(-self.ARM*py*numpy.sqrt(sqrt)-px*d2,-self.ARM*px*numpy.sqrt(sqrt)+py*d2)
+
+    def thetha2_geometric(self,end_pos):
+        K=self.ARM*self.ELBOW
+
+        pz=self.pos_in_matrix(end_pos,'p','z')
+        px=self.pos_in_matrix(end_pos,'p','x')
+        py=self.pos_in_matrix(end_pos,'p','y')
+        d2=self.dh_table.get_paramf(2,'d')
+        a2=self.dh_table.get_paramf(2,'a')
+        d4=self.dh_table.get_paramf(4,'d')
+        a3=self.dh_table.get_paramf(3,'a')
+
+
+        R=numpy.sqrt(numpy.power(px,2)+numpy.power(py,2)+numpy.power(pz,2)-numpy.power(d2,2))
+        r=numpy.sqrt(numpy.power(px,2)+numpy.power(py,2))
+
+        sina=-(pz/R)
+        cosa=-((self.ARM*r)/R)
+
+        cosb=(numpy.power(a2,2)+numpy.power(R,2)-(numpy.power(d4,2)+numpy.power(a3,2)))/(2*a2*R)
+
+        sinb=numpy.sqrt(1-numpy.power(cosb,2))
+
+        sint2=sina*cosb+(self.ARM*self.ELBOW)*cosa*sinb
+
+        cost2=cosa*cosb-(self.ARM*self.ELBOW)*sina*sinb
+
+        return numpy.arctan2(sint2,cost2)
+
+    def thetha3_geometric(self,end_pos):
+        d4=self.dh_table.get_paramf(4,'d')
+        a3=self.dh_table.get_paramf(3,'a')
+        sqrt=numpy.sqrt(numpy.power(d4,2)+numpy.power(a3,2))
+
+        sinb=(d4)/(sqrt)
+
 
 
 def print_menu():
@@ -651,6 +709,7 @@ def print_menu():
         print "|2)Forward kinematic movement             |"
         print "|3)Inverse Kinematics-Circle Equation     |"
         print "|4)Inverse Kinematics-Tangent Half Angle  |"
+        print "|5)Geometric approach                     |"
         print "|6)Exit                                   |"
         print "|___________SANTIAGO_VELEZ_SAFFON_________|"
 
@@ -694,8 +753,9 @@ def main():
             [ 0.0348995  -0.02112349  1.22921694 -0.04553583  1.74532925 -0.01733645]
 
             """
-            print robot.inverse_kinematics(pos)
 
+            #print robot.inverse_kinematics_tangent_half(pos)
+            print robot.inverse_kinematics(pos)
 
             """
 
@@ -706,7 +766,7 @@ def main():
             [  0.00000000e+00   0.00000000e+00   0.00000000e+00   1.00000000e+00]]
             DOF
             [-0.01745241 -0.01745241  0.8480481   0.          0.          0.        ]
-            """
+
 
             pos=[
                 [0.674333353,   0.0174515205,   0.738220816,    0.740322435],
@@ -717,6 +777,38 @@ def main():
 
             print robot.inverse_kinematics(pos)
 
+            """
+
+        if deci is 5:
+
+            pos=[
+                [-0.98149001,-0.0357355,0.18814976,0.82368182],
+                [-0.04368748,0.99831133,-0.03828686,0.17894921],
+                [-0.18646384,-0.04579796,-0.9813938,1.55276474],
+                [0,0,0,1]
+            ]
+
+            """
+            [[-0.98149001 -0.0357355   0.18814976  0.82368182]
+            [-0.04368748  0.99831133 -0.03828686  0.17894921]
+            [-0.18646384 -0.04579796 -0.9813938   1.55276474]
+            [ 0.          0.          0.          1.        ]]
+            DOF
+            [ 0.0348995  -0.02112349  1.22921694 -0.04553583  1.74532925 -0.01733645]
+
+            """
+
+            print robot.geometric_approach(pos)
+
+
+            pos=[
+                [0.674333353,   0.0174515205,   0.738220816,    0.740322435],
+                [-0.0117699348, 0.999847711,    -0.0128850380,  0.137201142],
+                [-0.738333257,  0.0,            0.674436062,    1.68562199],
+                [0,0,0,1]
+            ]
+            """[-0.01745241 -0.01745241  0.8480481   0.          0.          0.        ] """
+            print robot.geometric_approach(pos)
 
         deci=print_menu()
 
