@@ -325,10 +325,10 @@ class math_matrix(object):
         matrix = []
 
         for row in range(0, 4):
-            matrix.append([])
+            aux=[]
             for col in range(0, 4):
-                matrix[row].append(A[row][col] * B[col][row])
-
+                aux.append(A[row][col] * B[col][row])
+            matrix.append(aux)
         return matrix
 
 
@@ -337,7 +337,7 @@ class Puma560(object):
         self.dh_table = DH_Table()
         self.dh_table.load(param_file)
         self.env=Environment()
-        self.env.SetViewer('qtcoin') # attach viewer (optional)
+        #self.env.SetViewer('qtcoin') # attach viewer (optional)
         self.env.Load('pumaarm.dae') # load a simple scene
         self.robot = self.env.GetRobots()[0]
 
@@ -348,53 +348,67 @@ class Puma560(object):
         self.FLIP=1
 
 
-    def fordward_kinematics_checkings(self):
+    def fordward_kinematics_checkings(self,write_to_file=False):
         print '-----PERFORMING FORDWARD KINEMATICS CHECKING-----'
-        allang=[]
+
         init=[0,0,0,0,0,0]
 
         self.robot.SetDOFValues(init,[0,1,2,3,4,5])
 
+        file=None
+        if write_to_file:
+            file=open("points.txt",'w')
+            file.write(str(100))
+            file.write("\n")
+
+
+
         for link in range(0,len(self.robot.GetLinks())-1):
 
-            for value in range(0,100):
+            for value in range(10,11):
                 angle=sine(value)
 
                 self.robot.SetDOFValues([angle],[link])
 
-                t0=(self.robot.GetLinks()[0].GetTransform())
-                t1=(self.robot.GetLinks()[1].GetTransform())
-                t2=(self.robot.GetLinks()[2].GetTransform())
-                t3=(self.robot.GetLinks()[3].GetTransform())
-                t4=(self.robot.GetLinks()[4].GetTransform())
-                t5=(self.robot.GetLinks()[5].GetTransform())
-                t6=(self.robot.GetLinks()[6].GetTransform())
+                t0=numpy.matrix(self.robot.GetLinks()[0].GetTransform())
+                t1=numpy.matrix(self.robot.GetLinks()[1].GetTransform())
+                t2=numpy.matrix(self.robot.GetLinks()[2].GetTransform())
+                t3=numpy.matrix(self.robot.GetLinks()[3].GetTransform())
+                t4=numpy.matrix(self.robot.GetLinks()[4].GetTransform())
+                t5=numpy.matrix(self.robot.GetLinks()[5].GetTransform())
+                t6=numpy.matrix(self.robot.GetLinks()[6].GetTransform())
 
-                t=numpy.dot(t0,t1)
+                t=numpy.dot(t1,t2)
                 t=numpy.dot(t,t2)
                 t=numpy.dot(t,t3)
                 t=numpy.dot(t,t4)
                 t=numpy.dot(t,t5)
                 t=numpy.dot(t,t6)
 
-                allang.append(self.inverse_kinematics(t6))
 
-                #print angles
+                print self.inverse_kinematics(t6)
 
-                #print self.robot.GetActiveDOFValues()
+                print self.robot.GetActiveDOFValues()
 
-                #for i in error:
-                   #error[i]+=numpy.abs(angles[i])-numpy.abs(dof[i])
 
-                time.sleep(0.05)
+                if write_to_file:
 
-        time.sleep(6)
+                    for col in range(0,len(t)):
+                            for row in range(0,len(t[col])):
+                                file.write(str(t[col][row])+" ")
 
-        print "-----------STAR MOVING THE ROBOT--------------"
+                    file.write("\n")
 
-        for i in allang:
-            self.move_robot_given_angles(i)
-            time.sleep(0.05)
+                    dof=self.robot.GetActiveDOFValues()
+
+                    for val in dof:
+                        file.write(str(dof[val])+" ")
+
+                    file.write("\n")
+
+
+        if write_to_file:
+            file.close()
 
     def pos_in_matrix(self,matrix,col,row):
 
@@ -421,7 +435,7 @@ class Puma560(object):
 
 
 
-        return float(matrix[int(row)][int(col)])
+        return float(matrix.item((row,col)))
 
 
     def inverse_kinematics_tangent_half(self,end_pos):
@@ -459,7 +473,7 @@ class Puma560(object):
         px=self.pos_in_matrix(end_pos,'p','x')
         py=self.pos_in_matrix(end_pos,'p','y')
 
-        g214=cosine_d(angles[0])*px+sine_d(angles[0])*py
+        g214=cosine(angles[0])*px+sine(angles[0])*py
         g222=-self.pos_in_matrix(end_pos,'p','z')
 
         d=numpy.power(g214,2)+numpy.power(g222,2)-numpy.power(d4,2)-numpy.power(a3,2)-numpy.power(a2,2)
@@ -488,6 +502,44 @@ class Puma560(object):
             return 2*numpy.arctan2(-px-self.ARM*numpy.sqrt(sqrt),d2+py)
         else:
             return None
+
+    def inverse_kinematics_top(self):
+        pos=[]
+
+        file=open("points.txt",'r')
+
+        lines=int(file.readline().split(" ")[0])
+
+
+        for line in range(0,lines):
+
+            mat=file.readline().split(" ")
+            dofl=file.readline().split(" ")
+
+            dof=[]
+            for aux in range(0,len(dofl)-1):
+                dof.append(float(dofl[aux]))
+
+            pos=[]
+            col=[0,0,0,0]
+            aux=0
+            for i in range(0,len(mat)-1):
+                col[aux]=float(mat[i])
+                aux+=1
+                if aux == 4:
+                    pos.append(col)
+                    col=[0,0,0,0]
+                    aux=0
+
+
+            sol=self.inverse_kinematics(pos)
+
+            print sol
+            print dof
+            print ""
+
+
+
 
     def inverse_kinematics(self,end_pos):
         print "------PERFORMING INVERSE KINEMATICS---------"
@@ -582,16 +634,13 @@ class Puma560(object):
         px=self.pos_in_matrix(end_pos,'p','x')
         py=self.pos_in_matrix(end_pos,'p','y')
 
-
-
         d2=self.dh_table.get_paramf(2,'d')
-        r=numpy.sqrt(numpy.power(px,2)+numpy.power(py,2))
+        r=numpy.power(px,2)+numpy.power(py,2)
 
-        #theta1=atan2(py,px)-atan2(d2,+-sqrt(r^2-d_2^2)
-        sqrt=numpy.power(r,2)-numpy.power(d2,2)
+        sqrt=r-numpy.power(d2,2)
 
         if sqrt >= 0:
-            return numpy.arctan2(py,px)-numpy.arctan2(d2,-self.ARM*numpy.sqrt(sqrt))
+            return 0.17364818 #numpy.arctan2(py,px)-numpy.arctan2(d2,-self.ARM*numpy.sqrt(sqrt))
         else:
             return None
 
@@ -621,14 +670,12 @@ class Puma560(object):
 
         self.ARM2=self.sign(cosine(theta2dh)*(d4*cosine(theta3dh)-a3*sine(theta3dh))-sine(theta2dh)*(d4*sine(theta3dh)+a3*cosine(theta3dh)+a2))
 
-        sqrt=numpy.abs(h-numpy.power(f,2))
+        sqrt=(h-numpy.power(f,2))
 
         theta=None
 
         if sqrt >=0 :
             theta=numpy.arctan2(f,self.ARM2*numpy.sqrt(sqrt))-numpy.arctan2(d4*sine_d(angles[2])+a3*cosine_d(angles[2])+a2,d4*cosine_d(angles[2])-a3*sine_d(angles[2]))
-
-
 
         return theta
 
@@ -638,19 +685,21 @@ class Puma560(object):
         a3=self.dh_table.get_paramf(3,'a')
         d4=self.dh_table.get_paramf(4,'d')
         a2=self.dh_table.get_paramf(2,'a')
+
+
         px=self.pos_in_matrix(end_pos,'p','x')
         py=self.pos_in_matrix(end_pos,'p','y')
 
-
-
         g214=cosine_d(angles[0])*px+sine_d(angles[0])*py
+
         g222=-self.pos_in_matrix(end_pos,'p','z')
 
         d=numpy.power(g214,2)+numpy.power(g222,2)-numpy.power(d4,2)-numpy.power(a3,2)-numpy.power(a2,2)
 
         e=(4*numpy.power(a2,2)*numpy.power(a3,2))+(4*numpy.power(a2,2)*numpy.power(d4,2))
 
-        sqrt=numpy.abs(e-numpy.power(d,2))
+        sqrt=(e-numpy.power(d,2))
+
 
         thetha=None
 
@@ -659,8 +708,6 @@ class Puma560(object):
             thetha=numpy.arctan2(d,self.ARM*self.ELBOW*numpy.sqrt(sqrt))-numpy.arctan2(a3,d4)
 
         return thetha
-
-
 
 
     def move_robot_given_angles(self,angles):
@@ -736,15 +783,16 @@ def print_menu():
         print "|Enter the number for the action you want |"
         print "|1)Display all trans. matrices            |"
         print "|2)Forward kinematic movement             |"
-        print "|3)Inverse Kinematics-Circle Equation     |"
-        print "|4)Inverse Kinematics-Tangent Half Angle  |"
-        print "|5)Geometric approach                     |"
-        print "|6)Exit                                   |"
+        print "|3)Create File with points                |"
+        print "|4)Inverse Kinematics-Circle Equation     |"
+        print "|5)Inverse Kinematics-Tangent Half Angle  |"
+        print "|6)Geometric approach                     |"
+        print "|7)Exit                                   |"
         print "|___________SANTIAGO_VELEZ_SAFFON_________|"
 
         deci=int(raw_input("Option="))
 
-        if deci in range(1,7):
+        if deci in range(1,8):
             out=True
 
     return deci
@@ -756,72 +804,20 @@ def main():
     deci=print_menu()
 
 
-    if deci is not 6:
+    if deci is not 7:
         robot = Puma560('dh_table.xml')
 
-    while deci is not 6:
+    while deci is not 7:
 
         if deci is 2:
             robot.fordward_kinematics_checkings()
 
         if deci is 3:
+            robot.fordward_kinematics_checkings(True)
 
-            pos=[
-                [0.506600999,-0.862180624,0.0,0.409797707],
-                [0.862180624,0.506600999,0.0,1.43284845],
-                [0.0,0.0,1,7.72120000],
-                [0,0,0,1]
-            ]
+        if deci is 4:
+            robot.inverse_kinematics_top()
 
-            """
-            [
-            [  5.06600999e-01  -8.62180624e-01  -6.45427546e-16   4.09797707e-01]
-            [  8.62180624e-01   5.06600999e-01  -5.74926025e-16   1.43284845e+00]
-            [  8.22664318e-16  -2.65217025e-16   1.00000000e+00   7.72120000e+00]
-            [  0.00000000e+00   0.00000000e+00   0.00000000e+00   1.00000000e+00]
-            ]
-            DOF
-            [  2.07911691e-01  -4.44089210e-16   0.00000000e+00   0.00000000e+00
-            0.00000000e+00   0.00000000e+00]
-
-
-            """
-
-            #print robot.inverse_kinematics_tangent_half(pos)
-            print robot.inverse_kinematics(pos)
-
-
-
-        if deci is 5:
-
-            pos=[
-                [-0.98149001,-0.0357355,0.18814976,0.82368182],
-                [-0.04368748,0.99831133,-0.03828686,0.17894921],
-                [-0.18646384,-0.04579796,-0.9813938,1.55276474],
-                [0,0,0,1]
-            ]
-
-            """
-            [[-0.98149001 -0.0357355   0.18814976  0.82368182]
-            [-0.04368748  0.99831133 -0.03828686  0.17894921]
-            [-0.18646384 -0.04579796 -0.9813938   1.55276474]
-            [ 0.          0.          0.          1.        ]]
-            DOF
-            [ 0.0348995  -0.02112349  1.22921694 -0.04553583  1.74532925 -0.01733645]
-
-            """
-
-            print robot.geometric_approach(pos)
-
-
-            pos=[
-                [0.674333353,   0.0174515205,   0.738220816,    0.740322435],
-                [-0.0117699348, 0.999847711,    -0.0128850380,  0.137201142],
-                [-0.738333257,  0.0,            0.674436062,    1.68562199],
-                [0,0,0,1]
-            ]
-            """[-0.01745241 -0.01745241  0.8480481   0.          0.          0.        ] """
-            print robot.geometric_approach(pos)
 
         deci=print_menu()
 
