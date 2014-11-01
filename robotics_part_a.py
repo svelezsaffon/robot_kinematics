@@ -337,7 +337,7 @@ class Puma560(object):
         self.dh_table = DH_Table()
         self.dh_table.load(param_file)
         self.env=Environment()
-        #self.env.SetViewer('qtcoin') # attach viewer (optional)
+        self.env.SetViewer('qtcoin') # attach viewer (optional)
         self.env.Load('pumaarm.dae') # load a simple scene
         self.robot = self.env.GetRobots()[0]
 
@@ -350,20 +350,51 @@ class Puma560(object):
 
     def fordward_kinematics_checkings(self):
         print '-----PERFORMING FORDWARD KINEMATICS CHECKING-----'
+        allang=[]
+        init=[0,0,0,0,0,0]
 
-        for link in range(0,len(self.robot.GetLinks())):
+        self.robot.SetDOFValues(init,[0,1,2,3,4,5])
 
-            for value in range(-360,360):
+        for link in range(0,len(self.robot.GetLinks())-1):
+
+            for value in range(0,100):
                 angle=sine(value)
 
                 self.robot.SetDOFValues([angle],[link])
-                print self.robot.GetLinks()[6].GetTransform()
-                print "DOF"
-                print self.robot.GetDOFValues()
+
+                t0=(self.robot.GetLinks()[0].GetTransform())
+                t1=(self.robot.GetLinks()[1].GetTransform())
+                t2=(self.robot.GetLinks()[2].GetTransform())
+                t3=(self.robot.GetLinks()[3].GetTransform())
+                t4=(self.robot.GetLinks()[4].GetTransform())
+                t5=(self.robot.GetLinks()[5].GetTransform())
+                t6=(self.robot.GetLinks()[6].GetTransform())
+
+                t=numpy.dot(t0,t1)
+                t=numpy.dot(t,t2)
+                t=numpy.dot(t,t3)
+                t=numpy.dot(t,t4)
+                t=numpy.dot(t,t5)
+                t=numpy.dot(t,t6)
+
+                allang.append(self.inverse_kinematics(t6))
+
+                #print angles
+
+                #print self.robot.GetActiveDOFValues()
+
+                #for i in error:
+                   #error[i]+=numpy.abs(angles[i])-numpy.abs(dof[i])
 
                 time.sleep(0.05)
 
+        time.sleep(6)
 
+        print "-----------STAR MOVING THE ROBOT--------------"
+
+        for i in allang:
+            self.move_robot_given_angles(i)
+            time.sleep(0.05)
 
     def pos_in_matrix(self,matrix,col,row):
 
@@ -481,8 +512,6 @@ class Puma560(object):
 
                     angles[5]=self.calculate_theta_6(end_pos,angles)
 
-                    self.move_robot_given_angles(angles)
-
                 else:
                     print "Robot could not reach THETA_2 angle"
             else:
@@ -553,6 +582,8 @@ class Puma560(object):
         px=self.pos_in_matrix(end_pos,'p','x')
         py=self.pos_in_matrix(end_pos,'p','y')
 
+
+
         d2=self.dh_table.get_paramf(2,'d')
         r=numpy.sqrt(numpy.power(px,2)+numpy.power(py,2))
 
@@ -590,7 +621,7 @@ class Puma560(object):
 
         self.ARM2=self.sign(cosine(theta2dh)*(d4*cosine(theta3dh)-a3*sine(theta3dh))-sine(theta2dh)*(d4*sine(theta3dh)+a3*cosine(theta3dh)+a2))
 
-        sqrt=h-numpy.power(f,2)
+        sqrt=numpy.abs(h-numpy.power(f,2))
 
         theta=None
 
@@ -621,8 +652,6 @@ class Puma560(object):
 
         sqrt=numpy.abs(e-numpy.power(d,2))
 
-
-        print sqrt
         thetha=None
 
         if sqrt >= 0:
@@ -738,46 +767,30 @@ def main():
         if deci is 3:
 
             pos=[
-                [-0.98149001,-0.0357355,0.18814976,0.82368182],
-                [-0.04368748,0.99831133,-0.03828686,0.17894921],
-                [-0.18646384,-0.04579796,-0.9813938,1.55276474],
+                [0.506600999,-0.862180624,0.0,0.409797707],
+                [0.862180624,0.506600999,0.0,1.43284845],
+                [0.0,0.0,1,7.72120000],
                 [0,0,0,1]
             ]
 
             """
-            [[-0.98149001 -0.0357355   0.18814976  0.82368182]
-            [-0.04368748  0.99831133 -0.03828686  0.17894921]
-            [-0.18646384 -0.04579796 -0.9813938   1.55276474]
-            [ 0.          0.          0.          1.        ]]
+            [
+            [  5.06600999e-01  -8.62180624e-01  -6.45427546e-16   4.09797707e-01]
+            [  8.62180624e-01   5.06600999e-01  -5.74926025e-16   1.43284845e+00]
+            [  8.22664318e-16  -2.65217025e-16   1.00000000e+00   7.72120000e+00]
+            [  0.00000000e+00   0.00000000e+00   0.00000000e+00   1.00000000e+00]
+            ]
             DOF
-            [ 0.0348995  -0.02112349  1.22921694 -0.04553583  1.74532925 -0.01733645]
+            [  2.07911691e-01  -4.44089210e-16   0.00000000e+00   0.00000000e+00
+            0.00000000e+00   0.00000000e+00]
+
 
             """
 
             #print robot.inverse_kinematics_tangent_half(pos)
             print robot.inverse_kinematics(pos)
 
-            """
 
-            [
-            [  6.74333353e-01   1.74515205e-02   7.38220816e-01   7.40322435e-01]
-            [ -1.17699348e-02   9.99847711e-01  -1.28850380e-02   1.37201142e-01]
-            [ -7.38333257e-01   4.25007252e-17   6.74436062e-01   1.68562199e+00]
-            [  0.00000000e+00   0.00000000e+00   0.00000000e+00   1.00000000e+00]]
-            DOF
-            [-0.01745241 -0.01745241  0.8480481   0.          0.          0.        ]
-
-
-            pos=[
-                [0.674333353,   0.0174515205,   0.738220816,    0.740322435],
-                [-0.0117699348, 0.999847711,    -0.0128850380,  0.137201142],
-                [-0.738333257,  0.0,            0.674436062,    1.68562199],
-                [0,0,0,1]
-            ]
-
-            print robot.inverse_kinematics(pos)
-
-            """
 
         if deci is 5:
 
