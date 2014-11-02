@@ -627,7 +627,9 @@ class Puma560(object):
 
         lines=int(file.readline().split(" ")[0])
 
+        eror=open("error.txt",'w')
 
+        errortot=[0,0,0,0,0,0]
 
         for line in range(0,lines):
 
@@ -651,12 +653,30 @@ class Puma560(object):
                     aux=0
 
             pos=pos
-
-
+            errorlocal=[0,0,0,0,0,0]
             sol=self.inverse_kinematics(pos,dof[2])
-            self.move_robot_given_angles(sol)
-            time.sleep(0.09)
 
+            if sol[0] is not None and sol[1] is not None and sol[2] is not None and sol[3] is not None and sol[4] is not None and sol[5] is not None:
+
+                self.move_robot_given_angles(sol)
+
+                for i in range(0,len(dof)) :
+                    errorlocal[i]=dof[i]-sol[i]
+                    eror.write(str(errorlocal))
+                    eror.write("\n")
+                    errortot[i]+=errorlocal[i]
+
+                time.sleep(0.09)
+
+            else:
+                break
+
+
+
+        eror.write(str(errortot))
+
+        eror.close()
+        file.close()
 
     def inverse_kinematics(self,end_pos,theta):
         print "------PERFORMING INVERSE KINEMATICS---------"
@@ -815,7 +835,7 @@ class Puma560(object):
 
         e=(4*numpy.power(a2,2)*numpy.power(a3,2))+(4*numpy.power(a2,2)*numpy.power(d4,2))
 
-        sqrt=(e-numpy.power(d,2))#525
+        sqrt=(e-numpy.power(d,2))
 
         thetha=None
 
@@ -825,7 +845,7 @@ class Puma560(object):
 
             thetha=numpy.arctan2(d,self.ARM*self.ELBOW*numpy.sqrt(sqrt))-numpy.arctan2(a3,d4)
 
-        return 0.19198622
+        return thetha
 
 
     def move_robot_given_angles(self,angles):
