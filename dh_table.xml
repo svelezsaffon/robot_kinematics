@@ -14,7 +14,7 @@
         <thetha>0</thetha>
         <alpha>0</alpha>
         <a>0.4318</a>
-        <d>0.14909</d>
+        <d>0.15009</d>
     </link>
 
      <link>
@@ -30,7 +30,7 @@
         <thetha>0</thetha>
         <alpha>-90</alpha>
         <a>0</a>
-        <d>0.43307</d>
+        <d>0.4331</d>
     </link>
 
     <link>
@@ -46,6 +46,6 @@
         <thetha>0</thetha>
         <alpha>0</alpha>
         <a>0</a>
-        <d>0.05625</d>
+        <d>0</d>
     </link>
 </dh_table>
