@@ -554,8 +554,66 @@ class Puma560(object):
 
         return float(matrix[row][col])
 
+    def inverse_kinematics_tangent_half_top(self):
+        pos=[]
 
-    def inverse_kinematics_tangent_half(self,end_pos):
+        file=open("points.txt",'r')
+
+        lines=int(file.readline().split(" ")[0])
+
+        eror=open("error_half.txt",'w')
+
+        errortot=[0,0,0,0,0,0]
+
+        for line in range(0,lines):
+
+
+            mat=file.readline().split(" ")
+            dofl=file.readline().split(" ")
+
+            dof=[]
+            for aux in range(0,len(dofl)-1):
+                dof.append(float(dofl[aux]))
+
+            pos=[]
+            col=[0,0,0,0]
+            aux=0
+            for i in range(0,len(mat)-1):
+                col[aux]=float(mat[i])
+                aux+=1
+                if aux == 4:
+                    pos.append(col)
+                    col=[0,0,0,0]
+                    aux=0
+
+            pos=pos
+            errorlocal=[0,0,0,0,0,0]
+            sol=self.inverse_kinematics_tangent_half(pos,dof[2])
+
+            if sol[0] is not None and sol[1] is not None and sol[2] is not None and sol[3] is not None and sol[4] is not None and sol[5] is not None:
+
+                self.move_robot_given_angles(sol)
+
+                for i in range(0,len(dof)) :
+                    errorlocal[i]=dof[i]-sol[i]
+                    eror.write(str(errorlocal))
+                    eror.write("\n")
+                    errortot[i]+=errorlocal[i]
+
+                time.sleep(0.09)
+
+            else:
+                break
+
+
+
+        eror.write(str(errortot))
+
+        eror.close()
+        file.close()
+
+
+    def inverse_kinematics_tangent_half(self,end_pos,thetha):
         print "----PERFORMING INVERSE KINEMATICS - TANGENT HAL ANGLE-----"
         angles=[0,0,0,0,0,0]
 
@@ -564,13 +622,26 @@ class Puma560(object):
 
         if angles[0] is not None:
 
-            angles[2]=self.theta_3_half_angle(end_pos,angles)
+            angles[2]=thetha
 
             if angles[2] is not None:
 
                 angles[1]=self.theta_2_half_angle(end_pos,angles)
 
+                if angles[1] is not None:
 
+                    angles[3]=self.theta_4_half_angle(end_pos,angles)
+
+                    angles[4]=self.theta_5_half_angle(end_pos,angles)
+
+                    angles[5]=self.theta_6_half_angle(end_pos,angles)
+
+
+                else:
+                    print "[TANGENT HALF ANGLE]Robot could not reach  THETA_2"
+
+            else:
+                print "[TANGENT HALF ANGLE]Robot could not reach  THETA_3"
         else:
             print "[TANGENT HALF ANGLE]Robot could not reach  THETA_1"
 
@@ -579,8 +650,88 @@ class Puma560(object):
         return angles
 
 
+    def theta_5_half_angle(self,end_pos,angles):
+        ax=self.pos_in_matrix(end_pos,'a','x')
+        ay=self.pos_in_matrix(end_pos,'a','y')
+        az=self.pos_in_matrix(end_pos,'a','z')
+
+        c1=cosine_d(angles[0])
+        s1=sine_d(angles[0])
+
+        c4=cosine_d(angles[3])
+        s4=sine_d(angles[3])
+
+        c23=cosine_d(angles[1]+angles[2])
+        s23=sine_d(angles[1]+angles[2])
+
+
+        return numpy.arctan2((c1*c23*c4-s1*s4)*ax +(s1*c23*c4 + c1*s4)*ay-c4*s23*az,c1*s23*ax + s1*s23*ay + c23*az)
+
+
+    def theta_6_half_angle(self,end_pos,angles):
+        sx=self.pos_in_matrix(end_pos,'s','x')
+        sy=self.pos_in_matrix(end_pos,'s','y')
+        sz=self.pos_in_matrix(end_pos,'s','z')
+
+        nx=self.pos_in_matrix(end_pos,'n','x')
+        ny=self.pos_in_matrix(end_pos,'n','y')
+        nz=self.pos_in_matrix(end_pos,'n','z')
+
+        s1=sine_d(angles[0])
+        c4=cosine_d(angles[3])
+        c1=cosine_d(angles[0])
+        c23=cosine_d(angles[1]+angles[2])
+        s4=sine_d(angles[3])
+        s23=sine_d(angles[1]+angles[2])
+
+        return numpy.arctan2((-s1*c4-c1*c23*s4)*nx +(c1*c4-s1*c23*s4)*ny+s23*s4*nz ,(-s1*c4-c1*c23*s4)*sx + (c1*c4-s1*c23*s4)*sy + s23*s4*sz)
+
+
+
+    def theta_4_half_angle(self,end_pos,angles):
+
+        ax=self.pos_in_matrix(end_pos,'a','x')
+        ay=self.pos_in_matrix(end_pos,'a','y')
+        az=self.pos_in_matrix(end_pos,'a','z')
+
+        a=self.WRIST*(cosine_d(angles[0])*ay - sine_d(angles[0])*ax)
+        c23=cosine_d(angles[1]+angles[2])
+        b=self.WRIST*(cosine_d(angles[0])*c23*ax  + sine_d(angles[0])*c23*ay -sine_d(angles[1]+angles[2])*az)
+
+        return numpy.arctan2(a,b)
+
     def theta_2_half_angle(self,end_pos,angles):
-        return 10
+        px=self.pos_in_matrix(end_pos,'p','x')
+        py=self.pos_in_matrix(end_pos,'p','y')
+        d4=self.dh_table.get_paramf(4,'d')
+        a2=self.dh_table.get_paramf(2,'a')
+        a3=self.dh_table.get_paramf(3,'a')
+
+
+        c1=cosine_d(angles[0])
+        s1=sine_d(angles[0])
+        c3=cosine_d(angles[2])
+        s3=sine_d(angles[2])
+
+        theta2dh=self.dh_table.get_paramf(2,'thetha')
+        theta3dh=self.dh_table.get_paramf(3,'thetha')
+
+        f=c1*px+s1*py
+
+        h=numpy.power(d4,2)+numpy.power(a2,2)+numpy.power(a3,2)+2*a2*d4*sine_d(angles[2])+2*a2*a3*cosine_d(angles[2])
+
+        self.ARM2=self.sign(cosine(theta2dh)*(d4*cosine(theta3dh)-a3*sine(theta3dh))-sine(theta2dh)*(d4*sine(theta3dh)+a3*cosine(theta3dh)+a2))
+
+        sqrt=(h-numpy.power(f,2))
+
+        theta=None
+
+        if sqrt >=0 :
+            theta=2*numpy.arctan2((d4*c3-a3*s3)-self.ARM2*numpy.sqrt(sqrt),f+(d4*s3+a3*c3+a2))
+
+        return theta
+
+
 
 
     def theta_3_half_angle(self,end_pos,angles):
@@ -869,8 +1020,6 @@ class Puma560(object):
 
         sqrt=numpy.power(px,2)+numpy.power(py,2)-numpy.power(d2,2)
 
-
-
         return numpy.arctan2(-self.ARM*py*numpy.sqrt(sqrt)-px*d2,-self.ARM*px*numpy.sqrt(sqrt)+py*d2)
 
     def thetha2_geometric(self,end_pos):
@@ -959,6 +1108,9 @@ def main():
 
         if deci is 0:
             robot.test()
+
+        if deci is 5:
+            robot.inverse_kinematics_tangent_half_top()
 
 
         deci=print_menu()
