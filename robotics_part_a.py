@@ -337,7 +337,7 @@ class Puma560(object):
         self.dh_table = DH_Table()
         self.dh_table.load(param_file)
         self.env=Environment()
-        self.env.SetViewer('qtcoin') # attach viewer (optional)
+        #self.env.SetViewer('qtcoin') # attach viewer (optional)
         self.env.Load('pumaarm.dae') # load a simple scene
         self.robot = self.env.GetRobots()[0]
 
@@ -1117,8 +1117,31 @@ class Puma560(object):
 
         self.ARM2=self.sign(c2*(d4*c3-a3*s3)-s2*(d4*s3+a3*c3+a2))
 
+        t4=self.robot.GetLinks()[4].GetTransform()
+        t6=self.robot.GetLinks()[6].GetTransform()
 
+        z4=[]
+        z4.append(self.pos_in_matrix(t4,'n','z'))
+        z4.append(self.pos_in_matrix(t4,'s','z'))
+        z4.append(self.pos_in_matrix(t4,'a','z'))
 
+        s = []
+        s.append(self.pos_in_matrix(t6, 's', 'x'))
+        s.append(self.pos_in_matrix(t6, 's', 'y'))
+        s.append(self.pos_in_matrix(t6, 's', 'z'))
+
+        dot=numpy.dot(s,z4)
+
+        if dot is 0:
+            n=[]
+            n.append(self.pos_in_matrix(t6,'n','x'))
+            n.append(self.pos_in_matrix(t6,'n','y'))
+            n.append(self.pos_in_matrix(t6,'n','z'))
+            dot = numpy.dot(n,z4)
+
+        self.WRIST= self.sign(dot)
+
+        print self.WRIST
 
 
 
@@ -1194,6 +1217,24 @@ class Puma560(object):
         d4=self.dh_table.get_paramf(4,'d')
         a3=self.dh_table.get_paramf(3,'a')
 
+
+    def final_test(self):
+
+        angles=[numpy.radians(40),numpy.radians(40),numpy.radians(40),numpy.radians(0),numpy.radians(0),numpy.radians(0)]
+
+
+        t6=self.create_t6_matrix(angles)
+
+        self.update_indicators(angles)
+
+        inv=self.inverse_kinematics(t6,0)
+
+        print inv
+        print angles
+
+
+
+
 def print_menu():
 
     out = False
@@ -1215,7 +1256,7 @@ def print_menu():
 
         deci=int(raw_input("Option="))
 
-        if deci in range(0,8):
+        if deci in range(0,9):
             out=True
 
     return deci
@@ -1250,6 +1291,8 @@ def main():
         if deci is 6:
             robot.geometric_approach_top()
 
+        if deci is 8:
+            robot.final_test()
 
         deci=print_menu()
 
