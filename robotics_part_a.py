@@ -501,7 +501,7 @@ class Puma560(object):
 
         self.robot.SetDOFValues(init,[0,1,2,3,4,5])
 
-        long=44
+        long=40
 
         file=None
         if write_to_file:
@@ -738,7 +738,6 @@ class Puma560(object):
 
         h=numpy.power(d4,2)+numpy.power(a2,2)+numpy.power(a3,2)+2*a2*d4*sine_d(angles[2])+2*a2*a3*cosine_d(angles[2])
 
-        #self.ARM2=self.sign(cosine(theta2dh)*(d4*cosine(theta3dh)-a3*sine(theta3dh))-sine(theta2dh)*(d4*sine(theta3dh)+a3*cosine(theta3dh)+a2))
 
         sqrt=(h-numpy.power(f,2))
 
@@ -1015,8 +1014,6 @@ class Puma560(object):
 
         thetha=None
 
-        print sqrt
-
         if sqrt >= 0:
 
             thetha=numpy.arctan2(d,self.ARM*self.ELBOW*numpy.sqrt(sqrt))-numpy.arctan2(a3,d4)
@@ -1032,21 +1029,25 @@ class Puma560(object):
 
     def geometric_approach_top(self):
 
-        """
-        self.ARM=-1
-        self.ARM2=0
-        self.ELBOW=-1
-        self.WRIST=1
-        self.FLIP=1
-        """
-        angles=[numpy.radians(90),numpy.radians(90),numpy.radians(90),numpy.radians(0),numpy.radians(0),numpy.radians(0)]
+        angles=[0,0,0,0,0,0]
 
+        for theta in range(0,6):
+            angles[theta]= numpy.radians(float(raw_input("Theta"+ `(theta+1)` +"=")))
 
         t6=self.create_t6_matrix(angles)
 
+        #self.robot.SetDOFValues(angles,[0,1,2,3,4,5])
+
+        #t6=self.robot.GetLinks()[6].GetTransform()
+
+        self.update_indicators(angles)
+
         inv=self.geometric_approach(t6)
 
+        print "Original angles"
         print angles
+
+        print "Calculated angles"
         print inv
 
 
@@ -1059,6 +1060,12 @@ class Puma560(object):
         angles[1]=self.thetha2_geometric(end_pos)
 
         angles[2]=self.theta3_geometric(end_pos)
+
+        angles[3]=self.theta4_geometric(end_pos,angles)
+
+        angles[4]=self.theta5_geometric(end_pos,angles)
+
+        angles[5]=self.theta6_geometric(end_pos,angles)
 
         return angles
 
@@ -1107,8 +1114,6 @@ class Puma560(object):
             dot = numpy.dot(n,z4)
 
         self.WRIST= self.sign(dot)
-
-        print self.WRIST
 
 
 
@@ -1174,32 +1179,65 @@ class Puma560(object):
 
         return numpy.arctan2(sint,cost)
 
-    def theta4_geometric(self,end_pos):
+    def theta4_geometric(self,end_pos,angles):
 
-        pz=self.pos_in_matrix(end_pos,'p','z')
-        px=self.pos_in_matrix(end_pos,'p','x')
-        py=self.pos_in_matrix(end_pos,'p','y')
+        az=self.pos_in_matrix(end_pos,'a','z')
+        ax=self.pos_in_matrix(end_pos,'a','x')
+        ay=self.pos_in_matrix(end_pos,'a','y')
+
         d2=self.dh_table.get_paramf(2,'d')
         a2=self.dh_table.get_paramf(2,'a')
         d4=self.dh_table.get_paramf(4,'d')
         a3=self.dh_table.get_paramf(3,'a')
 
+        c1=cosine_d(angles[0])
+        s1=sine_d(angles[0])
+        c23=cosine_d(angles[1]+angles[2])
+        s23=sine_d(angles[1]+angles[2])
 
-    def final_test(self):
+        M=self.WRIST*1
 
-        angles=[numpy.radians(40),numpy.radians(40),numpy.radians(40),numpy.radians(0),numpy.radians(0),numpy.radians(0)]
+        return numpy.arctan2(M*(c1*ay-s1*ax),M*(c1*c23*ax+s1*c23*ay+s23*az))
+
+    def theta5_geometric(self,end_pos,angles):
+        c1=cosine_d(angles[0])
+        s1=sine_d(angles[0])
+        c23=cosine_d(angles[1]+angles[2])
+        s23=sine_d(angles[1]+angles[2])
+        c4=cosine_d(angles[3])
+        s4=sine_d(angles[3])
+
+        az=self.pos_in_matrix(end_pos,'a','z')
+        ax=self.pos_in_matrix(end_pos,'a','x')
+        ay=self.pos_in_matrix(end_pos,'a','y')
+
+        a=(c1*c23*c4 - s1*s4 )*ax + (s1*c23*c4 +c1*s4)*ay - s23*c4*az
+        b=c1*s23*ax + s1*s23*ay + c23*az
+
+        return numpy.arctan2(a,b)
+
+    def theta6_geometric(self,end_pos,angles):
+        c1=cosine_d(angles[0])
+        s1=sine_d(angles[0])
+        c23=cosine_d(angles[1]+angles[2])
+        s23=sine_d(angles[1]+angles[2])
+        c4=cosine_d(angles[3])
+        s4=sine_d(angles[3])
+
+        nz=self.pos_in_matrix(end_pos,'n','z')
+        nx=self.pos_in_matrix(end_pos,'n','x')
+        ny=self.pos_in_matrix(end_pos,'n','y')
+
+        sz=self.pos_in_matrix(end_pos,'s','z')
+        sx=self.pos_in_matrix(end_pos,'s','x')
+        sy=self.pos_in_matrix(end_pos,'s','y')
 
 
-        t6=self.create_t6_matrix(angles)
-
-        self.update_indicators(angles)
-
-        inv=self.inverse_kinematics(t6,0)
-
-        print inv
-        print angles
+        a=(-s1*c4 - c1*c23*s4)*nx + (c1*c4 - s1*c23*s4)*ny + (s23*s4)*nz
+        b=(-s1*c4 - c1*c23*s4)*sx + (c1*c4 - s1*c23*s4)*sy + (s23*s4)*sz
 
 
+        return numpy.arctan2(a,b)
 
 
 def print_menu():
@@ -1257,9 +1295,6 @@ def main():
 
         if deci is 6:
             robot.geometric_approach_top()
-
-        if deci is 8:
-            robot.final_test()
 
         deci=print_menu()
 
