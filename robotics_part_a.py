@@ -337,15 +337,29 @@ class Puma560(object):
         self.dh_table = DH_Table()
         self.dh_table.load(param_file)
         self.env=Environment()
-        self.env.SetViewer('qtcoin') # attach viewer (optional)
+        #self.env.SetViewer('qtcoin') # attach viewer (optional)
         self.env.Load('pumaarm.dae') # load a simple scene
         self.robot = self.env.GetRobots()[0]
+
+
+        t1=numpy.radians(self.dh_table.get_paramf(1,'thetha'))
+        t2=numpy.radians(self.dh_table.get_paramf(2,'thetha'))
+        t3=numpy.radians(self.dh_table.get_paramf(3,'thetha'))
+        t4=numpy.radians(self.dh_table.get_paramf(4,'thetha'))
+        t5=numpy.radians(self.dh_table.get_paramf(5,'thetha'))
+        t6=numpy.radians(self.dh_table.get_paramf(6,'thetha'))
+
+        initpos=[t1,t2,t3,t4,t5,t6]
 
         self.ARM=-1
         self.ARM2=0
         self.ELBOW=-1
         self.WRIST=1
         self.FLIP=1
+
+        self.update_indicators(initpos)
+
+
 
 
     def test(self):
@@ -372,7 +386,6 @@ class Puma560(object):
     def create_t6_matrix(self,angles):
         c1=cosine_d(angles[0])
         c2=cosine_d(angles[1])
-        c3=cosine_d(angles[2])
         c4=cosine_d(angles[3])
         c5=cosine_d(angles[4])
         c6=cosine_d(angles[5])
@@ -403,77 +416,77 @@ class Puma560(object):
 
         ##Normal vector  N
         val=c1*(c23*(c4*c5*c6-s4*s6)-s23*s5*c6)-s1*(s4*c5*c6+c4*s6)
-        if numpy.abs(val)< 0.000000001:
-            val=0.0
+        #if numpy.abs(val)< 0.000000001:
+        #    val=0.0
 
         matrix[0][0]=val
 
         val=s1*(c23*(c4*c5*c6-s4*s6)-s23*s5*c6)-c1*(s4*c5*c6+c4*s6)
-        if numpy.abs(val)< 0.000000001:
-            val=0.0
+        #if numpy.abs(val)< 0.000000001:
+        #    val=0.0
         matrix[1][0]=val
 
         val=-s23*(c4*c5*c6-s4*s5)-c23*s5*c6
-        if numpy.abs(val)< 0.000000001:
-            val=0.0
+        #if numpy.abs(val)< 0.000000001:
+        #    val=0.0
         matrix[2][0]=val
 
 
 
         ##Sliding vector S
         val=c1*(-c23*(c4*c5*c6+s4*c6)+s23*s5*s6)-s1*(-s4*c5*s6+c4*c6)
-        if numpy.abs(val)< 0.000000001:
-            val=0.0
+        #if numpy.abs(val)< 0.000000001:
+        #    val=0.0
 
         matrix[0][1]=val
 
         val=s1*(-c23*(c4*c5*c6+s4*c6)+s23*s5*s6)-c1*(-s4*c5*s6+c4*c6)
-        if numpy.abs(val)< 0.000000001:
-            val=0.0
+        #if numpy.abs(val)< 0.000000001:
+        #    val=0.0
 
         matrix[1][1]=val
 
         val=s23*(c4*c5*s6+s4*c6)+c23*s5*s6
-        if numpy.abs(val)< 0.000000001:
-            val=0.0
+        #if numpy.abs(val)< 0.000000001:
+        #    val=0.0
         matrix[2][1]=val
 
 
         #approach Vector A
         val=c1*(c23*c4*s5+s23*c5)-s1*s4*s5
-        if numpy.abs(val)< 0.000000001:
-            val=0.0
+        #if numpy.abs(val)< 0.000000001:
+        #    val=0.0
         matrix[0][2]=val
 
 
         val=s1*(c23*c4*s5+s23*c5)-c1*s4*s5
-        if numpy.abs(val)< 0.000000001:
-            val=0.0
+        #if numpy.abs(val)< 0.000000001:
+        #    val=0.0
         matrix[1][2]=val
 
 
         val=-s23*c4*s5+c23*c5
-        if numpy.abs(val)< 0.000000001:
-            val=0.0
+        #if numpy.abs(val)< 0.000000001:
+        #    val=0.0
         matrix[2][2]=val
 
         #Psoition vector P
 
         val=c1*(d6*(c23*c4*s5+s23*c5)+s23*d4+a3*c23+a2*c2)-s1*(d6*s4*s5+d2)
-        if numpy.abs(val)< 0.000000001:
-            val=0.0
+        #if numpy.abs(val)< 0.000000001:
+        #    val=0.0
 
         matrix[0][3]=val
 
 
         val=s1*(d6*(c23*c4*s5+s23*c5)+s23*d4+a3*c23+a2*c2)-c1*(d6*s4*s5+d2)
-        if numpy.abs(val)< 0.000000001:
-            val=0.0
+        #if numpy.abs(val)< 0.000000001:
+        #    val=0.0
         matrix[1][3]=val
 
         val=d6*(c23*c5-s23*c4*s5)+c23*d4-a3*s23-a2*s2
-        if numpy.abs(val)< 0.000000001:
-            val=0.0
+        #if numpy.abs(val)< 0.000000001:
+        #    val=0.0
 
         matrix[2][3]=val
 
@@ -493,11 +506,11 @@ class Puma560(object):
         file=None
         if write_to_file:
             file=open("points.txt",'w')
-            file.write(str(long-1))
+            file.write(str((long*2)-2))
             file.write("\n")
 
 
-        for value in range(1,long):
+        for value in range(-long,long):
 
             for link in range(0,len(self.robot.GetLinks())-1):
 
@@ -686,7 +699,8 @@ class Puma560(object):
 
         return numpy.arctan2((-s1*c4-c1*c23*s4)*nx +(c1*c4-s1*c23*s4)*ny+s23*s4*nz ,(-s1*c4-c1*c23*s4)*sx + (c1*c4-s1*c23*s4)*sy + s23*s4*sz)
 
-
+    def update_indicators(self,angles):
+        print angles
 
     def theta_4_half_angle(self,end_pos,angles):
 
@@ -804,8 +818,14 @@ class Puma560(object):
                     aux=0
 
             pos=pos
+
             errorlocal=[0,0,0,0,0,0]
+
+
+            self.update_indicators(dof)
+
             sol=self.inverse_kinematics(pos,dof[2])
+
 
             if sol[0] is not None and sol[1] is not None and sol[2] is not None and sol[3] is not None and sol[4] is not None and sol[5] is not None:
 
@@ -820,7 +840,7 @@ class Puma560(object):
                 time.sleep(0.09)
 
             else:
-                break
+                print "oops"
 
 
 
@@ -842,6 +862,7 @@ class Puma560(object):
             angles[2]=theta #self.calculate_thetha_3(end_pos,angles)
 
             if angles[2] is not None:
+
                 angles[1]=self.calculate_thetha_2(end_pos,angles)
 
                 if angles[1] is not None:
@@ -1005,13 +1026,58 @@ class Puma560(object):
             self.robot.SetDOFValues(angles,link)
 
 
+    def geometric_approach_top(self):
+
+        """
+        self.ARM=-1
+        self.ARM2=0
+        self.ELBOW=-1
+        self.WRIST=1
+        self.FLIP=1
+        """
+        angles=[numpy.radians(90),numpy.radians(90),numpy.radians(90),numpy.radians(0),numpy.radians(0),numpy.radians(0)]
+
+
+        t6=self.create_t6_matrix(angles)
+
+        inv=self.geometric_approach(t6)
+
+        print angles
+        print inv
+
+
+
     def geometric_approach(self,end_pos):
         angles=[0,0,0,0,0,0]
 
         angles[0]=self.thetha1_geometric(end_pos)
+
         angles[1]=self.thetha2_geometric(end_pos)
 
+        angles[2]=self.theta3_geometric(end_pos)
+
         return angles
+
+
+    def update_indicators(self,angles):
+
+        d2=self.dh_table.get_paramf(2,'d')
+        a2=self.dh_table.get_paramf(2,'a')
+        d4=self.dh_table.get_paramf(4,'d')
+        a3=self.dh_table.get_paramf(3,'a')
+
+        c2=cosine_d(angles[1])
+        c3=cosine_d(angles[2])
+        s3=sine_d(angles[2])
+
+        s23=sine_d(angles[1]+angles[2])
+        c23=cosine_d(angles[1]+angles[2])
+
+        self.ARM=self.sign(-d4*s23-a3*c23-a2*c2)
+
+        self.ELBOW=self.ARM*self.sign(d4*c3-a3*s3)
+
+
 
     def thetha1_geometric(self,end_pos):
         px=self.pos_in_matrix(end_pos,'p','x')
@@ -1040,24 +1106,50 @@ class Puma560(object):
         sina=-(pz/R)
         cosa=-((self.ARM*r)/R)
 
-        cosb=(numpy.power(a2,2)+numpy.power(R,2)-(numpy.power(d4,2)+numpy.power(a3,2)))/(2*a2*R)
+        cosb=((numpy.power(a2,2)+numpy.power(R,2)-(numpy.power(d4,2)+numpy.power(a3,2)))/(2*a2*R))
 
         sinb=numpy.sqrt(1-numpy.power(cosb,2))
 
-        sint2=sina*cosb+(self.ARM*self.ELBOW)*cosa*sinb
+        sint2=sina*cosb+(K)*cosa*sinb
 
-        cost2=cosa*cosb-(self.ARM*self.ELBOW)*sina*sinb
+        cost2=cosa*cosb-(K)*sina*sinb
 
         return numpy.arctan2(sint2,cost2)
 
-    def thetha3_geometric(self,end_pos):
+    def theta3_geometric(self,end_pos):
+        pz=self.pos_in_matrix(end_pos,'p','z')
+        px=self.pos_in_matrix(end_pos,'p','x')
+        py=self.pos_in_matrix(end_pos,'p','y')
+        d2=self.dh_table.get_paramf(2,'d')
+        a2=self.dh_table.get_paramf(2,'a')
         d4=self.dh_table.get_paramf(4,'d')
         a3=self.dh_table.get_paramf(3,'a')
-        sqrt=numpy.sqrt(numpy.power(d4,2)+numpy.power(a3,2))
 
-        sinb=(d4)/(sqrt)
+        R=numpy.sqrt(numpy.power(px,2)+numpy.power(py,2)+numpy.power(pz,2)-numpy.power(d2,2))
+        cosa=(numpy.power(a2,2)+(numpy.power(d4,2)+numpy.power(a3,2))-numpy.power(R,2))/(2*a2*numpy.sqrt(numpy.power(d4,2)+numpy.power(a3,2)))
 
 
+        sina=self.ARM*self.ELBOW*numpy.sqrt(1-numpy.power(cosa,2))
+
+
+        sinb=d4/(numpy.sqrt(numpy.power(d4,2)+numpy.power(a3,2)))
+
+        cosb=numpy.abs(a3)/numpy.sqrt(numpy.power(d4,2)+numpy.power(a3,2))
+
+        sint=sina*cosb - cosa*sinb
+        cost=cosa*cosb + sina*sinb
+
+        return numpy.arctan2(sint,cost)
+
+    def theta4_geometric(self,end_pos):
+
+        pz=self.pos_in_matrix(end_pos,'p','z')
+        px=self.pos_in_matrix(end_pos,'p','x')
+        py=self.pos_in_matrix(end_pos,'p','y')
+        d2=self.dh_table.get_paramf(2,'d')
+        a2=self.dh_table.get_paramf(2,'a')
+        d4=self.dh_table.get_paramf(4,'d')
+        a3=self.dh_table.get_paramf(3,'a')
 
 def print_menu():
 
@@ -1111,6 +1203,9 @@ def main():
 
         if deci is 5:
             robot.inverse_kinematics_tangent_half_top()
+
+        if deci is 6:
+            robot.geometric_approach_top()
 
 
         deci=print_menu()
