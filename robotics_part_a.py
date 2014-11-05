@@ -337,7 +337,7 @@ class Puma560(object):
         self.dh_table = DH_Table()
         self.dh_table.load(param_file)
         self.env=Environment()
-        #self.env.SetViewer('qtcoin') # attach viewer (optional)
+        self.env.SetViewer('qtcoin') # attach viewer (optional)
         self.env.Load('pumaarm.dae') # load a simple scene
         self.robot = self.env.GetRobots()[0]
 
@@ -514,6 +514,40 @@ class Puma560(object):
 
             for link in range(0,len(self.robot.GetLinks())-1):
 
+                """
+                if link == 0:
+                    nega=self.sign(value)
+                    value = (value % 160)*nega
+
+                if link ==1:
+                    if value < -225:
+                        value= -224
+                    if value > 45:
+                        value= 44
+
+                if link ==2:
+                    if value < -45:
+                        value= -40
+                    if value > 225:
+                        value= 45
+
+                if link ==3:
+                    if value < -110:
+                        value= -109
+                    if value > 170:
+                        value= 169
+
+                if link == 4:
+                    nega=self.sign(value)
+                    value = (value % 100)*nega
+
+                if link == 5:
+                    nega=self.sign(value)
+                    value = (value % 45)*nega
+
+                """
+
+
                 angle=numpy.radians(value)
                 self.robot.SetDOFValues([angle],[link])
 
@@ -601,6 +635,9 @@ class Puma560(object):
 
             pos=pos
             errorlocal=[0,0,0,0,0,0]
+
+            self.update_indicators(dof)
+
             sol=self.inverse_kinematics_tangent_half(pos,dof[2])
 
             if sol[0] is not None and sol[1] is not None and sol[2] is not None and sol[3] is not None and sol[4] is not None and sol[5] is not None:
@@ -616,7 +653,7 @@ class Puma560(object):
                 time.sleep(0.09)
 
             else:
-                break
+                print "ooops"
 
 
 
@@ -734,7 +771,7 @@ class Puma560(object):
 
         h=numpy.power(d4,2)+numpy.power(a2,2)+numpy.power(a3,2)+2*a2*d4*sine_d(angles[2])+2*a2*a3*cosine_d(angles[2])
 
-        self.ARM2=self.sign(cosine(theta2dh)*(d4*cosine(theta3dh)-a3*sine(theta3dh))-sine(theta2dh)*(d4*sine(theta3dh)+a3*cosine(theta3dh)+a2))
+        #self.ARM2=self.sign(cosine(theta2dh)*(d4*cosine(theta3dh)-a3*sine(theta3dh))-sine(theta2dh)*(d4*sine(theta3dh)+a3*cosine(theta3dh)+a2))
 
         sqrt=(h-numpy.power(f,2))
 
@@ -977,7 +1014,7 @@ class Puma560(object):
 
         h=numpy.power(d4,2)+numpy.power(a2,2)+numpy.power(a3,2)+2*a2*d4*sine_d(angles[2])+2*a2*a3*cosine_d(angles[2])
 
-        self.ARM2=self.sign(cosine(theta2dh)*(d4*cosine(theta3dh)-a3*sine(theta3dh))-sine(theta2dh)*(d4*sine(theta3dh)+a3*cosine(theta3dh)+a2))
+        #self.ARM2=self.sign(cosine(theta2dh)*(d4*cosine(theta3dh)-a3*sine(theta3dh))-sine(theta2dh)*(d4*sine(theta3dh)+a3*cosine(theta3dh)+a2))
 
         sqrt=(h-numpy.power(f,2))
 
@@ -1069,6 +1106,7 @@ class Puma560(object):
         c2=cosine_d(angles[1])
         c3=cosine_d(angles[2])
         s3=sine_d(angles[2])
+        s2=sine_d(angles[2])
 
         s23=sine_d(angles[1]+angles[2])
         c23=cosine_d(angles[1]+angles[2])
@@ -1076,6 +1114,11 @@ class Puma560(object):
         self.ARM=self.sign(-d4*s23-a3*c23-a2*c2)
 
         self.ELBOW=self.ARM*self.sign(d4*c3-a3*s3)
+
+        self.ARM2=self.sign(c2*(d4*c3-a3*s3)-s2*(d4*s3+a3*c3+a2))
+
+
+
 
 
 
