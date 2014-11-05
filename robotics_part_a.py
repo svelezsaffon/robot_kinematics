@@ -337,7 +337,7 @@ class Puma560(object):
         self.dh_table = DH_Table()
         self.dh_table.load(param_file)
         self.env=Environment()
-        #self.env.SetViewer('qtcoin') # attach viewer (optional)
+        self.env.SetViewer('qtcoin') # attach viewer (optional)
         self.env.Load('pumaarm.dae') # load a simple scene
         self.robot = self.env.GetRobots()[0]
 
@@ -501,7 +501,7 @@ class Puma560(object):
 
         self.robot.SetDOFValues(init,[0,1,2,3,4,5])
 
-        long=40
+        long=44
 
         file=None
         if write_to_file:
@@ -513,39 +513,6 @@ class Puma560(object):
         for value in range(-long,long):
 
             for link in range(0,len(self.robot.GetLinks())-1):
-
-                """
-                if link == 0:
-                    nega=self.sign(value)
-                    value = (value % 160)*nega
-
-                if link ==1:
-                    if value < -225:
-                        value= -224
-                    if value > 45:
-                        value= 44
-
-                if link ==2:
-                    if value < -45:
-                        value= -40
-                    if value > 225:
-                        value= 45
-
-                if link ==3:
-                    if value < -110:
-                        value= -109
-                    if value > 170:
-                        value= 169
-
-                if link == 4:
-                    nega=self.sign(value)
-                    value = (value % 100)*nega
-
-                if link == 5:
-                    nega=self.sign(value)
-                    value = (value % 45)*nega
-
-                """
 
 
                 angle=numpy.radians(value)
@@ -1295,10 +1262,6 @@ def main():
             robot.final_test()
 
         deci=print_menu()
-
-
-
-
 
 
 if __name__ == '__main__':
